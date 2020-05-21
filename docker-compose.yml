@@ -1,0 +1,51 @@
+version: "3"
+services:
+  web:
+    image: 'gitlab/gitlab-ce:latest'
+    restart: always
+    volumes:
+      - ./config/gitlab:/etc/gitlab
+      - ./logs/gitlab:/var/log/gitlab
+      - ./data/gitlab:/var/opt/gitlab
+    hostname:  'ec2-3-22-92-152.us-east-2.compute.amazonaws.com'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'https://ec2-3-22-92-152.us-east-2.compute.amazonaws.com'
+        registry_external_url 'https://ec2-3-22-92-152.us-east-2.compute.amazonaws.com:5050'
+        registry['enable'] = true
+    ports:
+      - '80:80'
+      - '443:443'
+      - '2222:22'
+      - '5050:5050'
+    networks:
+      - gitlab
+  sonarqube:
+    image: 'sonarqube:7.6-community'
+    restart: always
+    ports:
+      - '9000:9000'
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    restart: always
+    depends_on:
+      - web
+    volumes:
+      - './gitlab-runner-config:/etc/gitlab-runner:Z'
+      - ./logs/gitlab-runner:/var/log/gitlab-runner
+      - ./data/gitlab-runner:/var/opt/gitlab-runner
+    networks:
+      - gitlab
+  jenkins:
+     image: 'shehab/jenkins-with-docker'
+     restart: always
+     privileged: true
+     ports:
+       - '8080:8080'
+       - '50000:50000'
+     volumes:
+       - ./data/jenkinsdocker:/var/jenkins_home
+       - /var/run/docker.sock:/var/run/docker.sock
+       - /usr/bin/docker:/usr/bin/docker
+     networks:
+       - gitlab
